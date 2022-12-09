@@ -31,6 +31,26 @@ func Grayscale(img image.Image) *image.NRGBA {
 	return dst
 }
 
+// GrayscaleGray produces a grayscale (one channel) version of the image.
+func GrayscaleGray(img image.Image) *image.Gray {
+	src := newScanner(img)
+	dst := image.NewGray(image.Rect(0, 0, src.w, src.h))
+	parallel(0, src.h, func(ys <-chan int) {
+		dw := 4 * src.w
+		d := make([]byte, dw)
+		for y := range ys {
+			i := y * dst.Stride
+			src.scan(0, y, src.w, y+1, d)
+			for di := 0; di < dw; di += 4 {
+				f := 0.299*float64(d[di]) + 0.587*float64(d[di+1]) + 0.114*float64(d[di+2])
+				dst.Pix[i] = uint8(f + 0.5)
+				i++
+			}
+		}
+	})
+	return dst
+}
+
 // Invert produces an inverted (negated) version of the image.
 func Invert(img image.Image) *image.NRGBA {
 	src := newScanner(img)
